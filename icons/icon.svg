@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Zuivellogboek">
-  <rect width="512" height="512" rx="96" fill="#2563eb"/>
-  <path d="M148 116h216a32 32 0 0 1 32 32v248a32 32 0 0 1-32 32H148a32 32 0 0 1-32-32V148a32 32 0 0 1 32-32z" fill="#fff"/>
-  <path d="M174 178h164M174 236h164M174 294h112" stroke="#2563eb" stroke-width="24" stroke-linecap="round"/>
-  <path d="M326 308c27 0 50 22 50 50s-23 50-50 50-50-22-50-50 23-50 50-50z" fill="#dbeafe"/>
-  <path d="M326 332c15 21 24 34 24 47 0 15-11 26-24 26s-24-11-24-26c0-13 9-26 24-47z" fill="#2563eb"/>
-</svg>
