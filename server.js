@@ -175,9 +175,13 @@ async function readStore() {
   try {
     const raw = await fs.readFile(DATA_FILE, 'utf8');
     const parsed = JSON.parse(raw);
-    return { logbooks: Array.isArray(parsed.logbooks) ? parsed.logbooks : [] };
+    return {
+      logbooks: Array.isArray(parsed.logbooks) ? parsed.logbooks : [],
+      writeoffs: Array.isArray(parsed.writeoffs) ? parsed.writeoffs : [],
+      prices: parsed.prices && typeof parsed.prices === 'object' ? parsed.prices : {}
+    };
   } catch {
-    return { logbooks: [] };
+    return { logbooks: [], writeoffs: [], prices: {} };
   }
 }
 
@@ -316,6 +320,139 @@ function summariesCsv(logbooks) {
   return rows.map(row => row.map(csvEscape).join(';')).join('\r\n');
 }
 
+function qty(value) {
+  const number = Number(String(value ?? '').replace(',', '.'));
+  return Number.isFinite(number) && number > 0 ? number : 0;
+}
+
+function addDaysLocal(iso, days) {
+  if (!iso) return '';
+  const [year, month, day] = String(iso).split('-').map(Number);
+  if (!year || !month || !day) return '';
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function priceKey(product, flavor, size) {
+  return [product || '', flavor || '', size || ''].join('||');
+}
+
+function addSalesLine(lines, item, source, product, flavor, size, quantity, tht, productionDate) {
+  const count = qty(quantity);
+  if (!count) return;
+  const summary = item.summary || {};
+  const cleanProduct = product || 'Zuivel';
+  const cleanFlavor = flavor || 'Naturel';
+  const cleanSize = size || 'stuks';
+  lines.push({
+    lineId: `${item.id}:${source}:${cleanSize}`,
+    logbookId: item.id,
+    product: cleanProduct,
+    flavor: cleanFlavor,
+    size: cleanSize,
+    quantity: count,
+    tht: tht || '',
+    productionDate: productionDate || summary.date || '',
+    logbookTitle: summary.title || `${cleanProduct} ${productionDate || ''}`.trim(),
+    priceKey: priceKey(cleanProduct, cleanFlavor, cleanSize)
+  });
+}
+
+function salesLinesFromLogbook(item) {
+  const state = item.state || {};
+  const fields = state.fields || {};
+  const rows = state.rows || {};
+  const lines = [];
+  const yProcessDate = fields['y-verwerk-datum'] || fields['y-date'];
+  const yTht = addDaysLocal(yProcessDate, 16) || fields['y-tht'];
+
+  for (const [index, row] of (rows.yoghurt || []).entries()) {
+    addSalesLine(lines, item, `yoghurt-${index}`, 'Yoghurt', row.smaak, '1L', row.one, yTht, yProcessDate);
+    addSalesLine(lines, item, `yoghurt-${index}`, 'Yoghurt', row.smaak, '500ml', row.half, yTht, yProcessDate);
+  }
+
+  const yHangopDate = fields['y-hangop-datum'] || yProcessDate;
+  const yHangopTht = addDaysLocal(yHangopDate, 16) || fields['y-hangop-tht'] || fields['y-tht'];
+  for (const [index, row] of (rows.hangop || []).entries()) {
+    addSalesLine(lines, item, `hangop-${index}`, 'Hangop', row.smaak, '500ml', row.half, yHangopTht, yHangopDate);
+  }
+
+  if (fields['y-opt-aftap']) {
+    const yAftapDate = fields['y-aftap-date'] || yProcessDate || fields['y-date'];
+    const yAftapTht = addDaysLocal(yAftapDate, 16) || fields['y-aftap-tht'];
+    addSalesLine(lines, item, 'y-aftap', 'Gepasteuriseerde melk', 'Naturel', '1L', fields['y-aftap-1l'], yAftapTht, yAftapDate);
+    addSalesLine(lines, item, 'y-aftap', 'Gepasteuriseerde melk', 'Naturel', '500ml', fields['y-aftap-500'], yAftapTht, yAftapDate);
+  }
+
+  if (fields['km-opt-aftap']) {
+    const kmAftapDate = fields['km-aftap-date'] || fields['km-verwerk-datum'] || fields['km-prod-date'];
+    const kmAftapTht = addDaysLocal(kmAftapDate, 16) || fields['km-aftap-tht'];
+    addSalesLine(lines, item, 'km-aftap', 'Gepasteuriseerde melk', 'Naturel', '1L', fields['km-aftap-1l'], kmAftapTht, kmAftapDate);
+    addSalesLine(lines, item, 'km-aftap', 'Gepasteuriseerde melk', 'Naturel', '500ml', fields['km-aftap-500'], kmAftapTht, kmAftapDate);
+  }
+
+  const kmProcessDate = fields['km-verwerk-datum'] || fields['km-date'] || fields['km-prod-date'];
+  const kmTht = addDaysLocal(kmProcessDate, 14) || fields['km-tht'];
+  addSalesLine(lines, item, 'karnemelk', 'Karnemelk', 'Naturel', '1L', fields['km-1l'], kmTht, kmProcessDate);
+  addSalesLine(lines, item, 'karnemelk', 'Karnemelk', 'Naturel', '500ml', fields['km-500'], kmTht, kmProcessDate);
+  addSalesLine(lines, item, 'roomboter', 'Roomboter', 'Naturel', '250g', fields['km-boter'], fields['km-boter-tht'], fields['km-date']);
+
+  for (const [index, row] of (rows.vlaBottles || []).entries()) {
+    addSalesLine(lines, item, `vla-${index}`, 'Vla', row.name, '1L', row.one, fields['v-tht'], fields['v-date']);
+    addSalesLine(lines, item, `vla-${index}`, 'Vla', row.name, '500ml', row.half, fields['v-tht'], fields['v-date']);
+  }
+
+  addSalesLine(lines, item, 'melk', 'Gepasteuriseerde melk', 'Naturel', '1L', fields['m-1l'], fields['m-tht'], fields['m-date']);
+  addSalesLine(lines, item, 'melk', 'Gepasteuriseerde melk', 'Naturel', '500ml', fields['m-500'], fields['m-tht'], fields['m-date']);
+  addSalesLine(lines, item, 'chocomelk', 'Chocolademelk', 'Naturel', '1L', fields['c-1l'], fields['c-tht'], fields['c-date']);
+  addSalesLine(lines, item, 'chocomelk', 'Chocolademelk', 'Naturel', '500ml', fields['c-500'], fields['c-tht'], fields['c-date']);
+
+  return lines;
+}
+
+function salesReport(store) {
+  const lines = store.logbooks.flatMap(salesLinesFromLogbook);
+  const writeoffTotals = new Map();
+  for (const writeoff of store.writeoffs) {
+    writeoffTotals.set(writeoff.lineId, (writeoffTotals.get(writeoff.lineId) || 0) + qty(writeoff.quantity));
+  }
+
+  const pricedLines = lines
+    .map(line => {
+      const writtenOff = writeoffTotals.get(line.lineId) || 0;
+      const sold = Math.max(0, line.quantity - writtenOff);
+      const unitPrice = qty(store.prices[line.priceKey]);
+      return {
+        ...line,
+        writtenOff,
+        sold,
+        unitPrice,
+        revenue: Math.round(sold * unitPrice * 100) / 100
+      };
+    })
+    .sort((a, b) => String(b.productionDate).localeCompare(String(a.productionDate)) || String(a.product).localeCompare(String(b.product)));
+
+  const totals = pricedLines.reduce((acc, line) => {
+    acc.produced += line.quantity;
+    acc.writtenOff += line.writtenOff;
+    acc.sold += line.sold;
+    acc.revenue += line.revenue;
+    return acc;
+  }, { produced: 0, writtenOff: 0, sold: 0, revenue: 0 });
+  totals.revenue = Math.round(totals.revenue * 100) / 100;
+
+  return {
+    lines: pricedLines,
+    writeoffs: store.writeoffs.slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))),
+    prices: store.prices,
+    totals
+  };
+}
+
 async function handleApi(req, res, url) {
   const parts = url.pathname.split('/').filter(Boolean);
   const store = await readStore();
@@ -337,6 +474,57 @@ async function handleApi(req, res, url) {
 
   if (req.method === 'GET' && url.pathname === '/api/logbooks.csv') {
     return sendDownload(res, 200, 'text/csv; charset=utf-8', `zuivellogboek-overzicht-${new Date().toISOString().slice(0, 10)}.csv`, summariesCsv(store.logbooks));
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/sales') {
+    return sendJson(res, 200, salesReport(store));
+  }
+
+  if (req.method === 'PUT' && url.pathname === '/api/prices') {
+    const payload = JSON.parse(await readBody(req) || '{}');
+    const nextPrices = payload.prices && typeof payload.prices === 'object' ? payload.prices : {};
+    store.prices = {};
+    for (const [key, value] of Object.entries(nextPrices)) {
+      const price = qty(value);
+      if (price) store.prices[key] = price;
+    }
+    await writeStore(store);
+    return sendJson(res, 200, { prices: store.prices });
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/writeoffs') {
+    const payload = JSON.parse(await readBody(req) || '{}');
+    const report = salesReport(store);
+    const line = report.lines.find(item => item.lineId === payload.lineId);
+    if (!line) return sendJson(res, 404, { error: 'Productieregel niet gevonden.' });
+    const quantity = qty(payload.quantity);
+    if (!quantity) return sendJson(res, 400, { error: 'Aantal moet groter zijn dan 0.' });
+    const item = {
+      id: crypto.randomUUID(),
+      lineId: line.lineId,
+      logbookId: line.logbookId,
+      product: line.product,
+      flavor: line.flavor,
+      size: line.size,
+      tht: line.tht,
+      productionDate: line.productionDate,
+      quantity,
+      reason: String(payload.reason || 'Afgeboekt').trim(),
+      note: String(payload.note || '').trim(),
+      date: String(payload.date || new Date().toISOString().slice(0, 10)),
+      createdAt: new Date().toISOString()
+    };
+    store.writeoffs.push(item);
+    await writeStore(store);
+    return sendJson(res, 200, item);
+  }
+
+  if (req.method === 'DELETE' && parts[0] === 'api' && parts[1] === 'writeoffs' && parts[2]) {
+    const before = store.writeoffs.length;
+    store.writeoffs = store.writeoffs.filter(item => item.id !== parts[2]);
+    if (store.writeoffs.length === before) return sendJson(res, 404, { error: 'Afboeking niet gevonden.' });
+    await writeStore(store);
+    return sendJson(res, 200, { ok: true });
   }
 
   if (req.method === 'GET' && parts[0] === 'api' && parts[1] === 'logbooks' && parts[2]) {

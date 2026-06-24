@@ -1,354 +1,76 @@
-﻿<!DOCTYPE html>
-<html lang="nl">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Het Boerderijwinkeltje — Zuivellogboek</title>
-  <meta name="theme-color" content="#2563eb" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=render-3" />
-</head>
-<body>
-<header>
-  <h1>Het Boerderijwinkeltje — Zuivellogboek</h1>
-  <div class="toolbar">
-    <button class="btn" id="demoBtn">Demo invullen</button>
-    <button class="btn" id="resetBtn">Leegmaken</button>
-    <button class="btn primary" id="printBtn">Opslaan als PDF</button>
-    <span style="flex:1"></span>
-    <button class="btn" id="btnAddProgram">Programma toevoegen</button>
-    <button class="btn" id="btnAddFlavor">Fruitsmaak toevoegen</button>
-    <button class="btn" id="btnAddCompound">Compound toevoegen</button>
-  </div>
-  <div class="toolbar server-toolbar no-print">
-    <button class="btn" id="btnNewLogbook">Nieuw logboek</button>
-    <button class="btn primary" id="btnSaveServer">Opslaan op server</button>
-    <button class="btn" id="btnShowLogbooks">Logboeken bekijken</button>
-    <button class="btn" id="btnDownloadBackup">Backup JSON</button>
-    <button class="btn" id="btnDownloadCsv">Export CSV</button>
-    <button class="btn" id="btnLogout" hidden>Uitloggen</button>
-    <select id="server-logbooks" class="sr-only" aria-label="Opgeslagen logboeken"></select>
-    <button class="btn sr-only" id="btnRefreshLogbooks">Logboeken verversen</button>
-    <button class="btn sr-only" id="btnOpenLogbook">Openen</button>
-    <button class="btn danger sr-only" id="btnDeleteLogbook">Verwijderen</button>
-    <span class="pill" id="draft-status">Concept</span>
-    <span class="pill" id="server-status">Server nog niet gecontroleerd</span>
-  </div>
-  <details class="accent-section manager-panel no-print" id="manage-lists">
-    <summary>Lijsten beheren</summary>
-    <div class="row">
-      <div class="field span-6"><label>Programma's</label><select id="manage-programs"></select></div>
-      <div class="field span-3"><label>Actie</label><button type="button" class="btn danger" id="btnRemoveProgram">Programma wissen</button></div>
-    </div>
-    <div class="row">
-      <div class="field span-6"><label>Fruitsmaken</label><select id="manage-flavors"></select></div>
-      <div class="field span-3"><label>Actie</label><button type="button" class="btn danger" id="btnRemoveFlavor">Fruitsmaak wissen</button></div>
-    </div>
-    <div class="row">
-      <div class="field span-6"><label>Compounds</label><select id="manage-compounds"></select></div>
-      <div class="field span-3"><label>Actie</label><button type="button" class="btn danger" id="btnRemoveCompound">Compound wissen</button></div>
-    </div>
-  </details>
-</header>
+# Render online zetten
 
-<section class="card logbook-panel no-print" id="logbook-panel">
-  <div class="panel-head">
-    <div>
-      <h2>Logboeken</h2>
-      <p class="muted">Kies een opgeslagen logboek of start een nieuw logboek.</p>
-    </div>
-    <div class="panel-actions">
-      <button type="button" class="btn primary" id="btnPanelNewLogbook">Nieuw logboek starten</button>
-      <button type="button" class="btn" id="btnCloseLogbooks">Sluiten</button>
-    </div>
-  </div>
-  <div class="row">
-    <div class="field span-6"><label>Zoeken</label><input id="logbook-search" type="search" placeholder="Datum, product of bereider"/></div>
-    <div class="field span-3"><label>Product</label>
-      <select id="logbook-product-filter">
-        <option value="">Alle producten</option>
-        <option value="yoghurt">Yoghurt</option>
-        <option value="karnemelk">Karnemelk</option>
-        <option value="vla">Vla</option>
-        <option value="melk">Gepasteuriseerde melk</option>
-        <option value="chocomelk">Chocolademelk</option>
-      </select>
-    </div>
-    <div class="field span-3"><label>Actie</label><button type="button" class="btn" id="btnRefreshPanel">Verversen</button></div>
-  </div>
-  <div class="logbook-list" id="logbook-list"><p class="muted">Logboeken worden geladen.</p></div>
-</section>
+Deze versie is voorbereid voor Render.
 
-<main class="wrap grid">
-<section class="card">
-  <h2>Batchgegevens</h2>
-  <div class="validation-warnings no-print" id="validation-warnings" hidden></div>
-  <div class="row">
-    <div class="field span-6"><label>Product</label>
-      <select id="productSelect">
-        <option value="yoghurt">Yoghurt</option>
-        <option value="karnemelk">Karnemelk</option>
-        <option value="vla">Vla</option>
-        <option value="melk">Gepasteuriseerde melk</option>
-        <option value="chocomelk">Chocolademelk</option>
-      </select>
-    </div>
-    <div class="field span-6"><label>Bereider</label><input id="bereider" type="text" autocomplete="name"/></div>
-  </div>
+## Wat heb je nodig?
 
-  <div id="form-yoghurt" class="product-form">
-    <h3>Yoghurt — aanzuren en programma</h3>
-    <div class="row">
-      <div class="field span-3"><label>Datum productie</label><input id="y-date" type="date"/></div>
-      <div class="field span-3"><label>Tijdstip start</label><input id="y-start" type="time"/></div>
-      <div class="field span-3"><label>Liters melk</label><input id="y-liters" type="number" step="0.1" min="0"/></div>
-      <div class="field span-3"><label>Temperatuur melk (°C)</label><input id="y-begintemp" type="number" step="0.1"/></div>
-    </div>
-    <div class="row">
-      <div class="field span-6"><label>Programma pasteur</label><input id="y-programma" list="programma-lijst"/></div>
-      <div class="field span-3"><label>Tijdstip cultuur</label><input id="y-cultuur-tijd" type="time"/></div>
-      <div class="field span-3"><label>Cultuur (tl)</label><input id="y-cultuur-hoeveel" type="number" step="0.1" min="0"/></div>
-    </div>
+- Een Render-account.
+- Deze map als GitHub-repository, of als zip/project dat je daarna in GitHub zet.
+- Een wachtwoord voor het logboek.
 
-    <label class="span-12" style="display:flex;gap:8px;align-items:center;margin:10px 0">
-      <input type="checkbox" id="y-opt-aftap"/> Melk afgetapt voor gepasteuriseerde melk?
-    </label>
-    <details id="y-aftap" class="accent-section" style="display:none">
-      <summary>Aftap melk</summary>
-      <div class="row">
-        <div class="field span-3"><label>Liters aftap</label><input id="y-aftap-liters" type="number" step="0.1" min="0"/></div>
-        <div class="field span-3"><label>Tijdstip aftap</label><input id="y-aftap-tijd" type="time"/></div>
-        <div class="field span-3"><label>Temperatuur aftap (°C)</label><input id="y-aftap-temp" type="number" step="0.1"/></div>
-        <div class="field span-3"><label>THT aftap auto</label><input id="y-aftap-tht" type="date" readonly/></div>
-      </div>
-      <div class="row">
-        <div class="field span-3"><label>Flessen 1L</label><input id="y-aftap-1l" type="number" step="1" min="0"/></div>
-        <div class="field span-3"><label>Flessen 500ml</label><input id="y-aftap-500" type="number" step="1" min="0"/></div>
-      </div>
-    </details>
+## Belangrijke Render-instellingen
 
-    <h3>Yoghurt — na fermentatie</h3>
-    <div class="row accent-block">
-      <div class="field span-3"><label>Datum verwerken</label><input id="y-verwerk-datum" type="date"/></div>
-      <div class="field span-3"><label>Tijdstip verwerken</label><input id="y-verwerk-tijd" type="time"/></div>
-      <div class="field span-3"><label>pH</label><input id="y-ph" type="number" step="0.01" min="0"/></div>
-      <div class="field span-3"><label>Liters yoghurt</label><input id="y-yoghurt-liters" type="number" step="0.1" min="0"/></div>
-      <div class="field span-3"><label>THT yoghurt auto</label><input id="y-tht" type="date" readonly/></div>
-    </div>
+Gebruik bij voorkeur het bestand `render.yaml`. Daarin staat:
 
-    <details class="accent-section" open>
-      <summary>Verdeling eindproducten</summary>
-      <div class="list" id="y-repeater"></div>
-      <button type="button" class="btn" id="y-add">+ smaak toevoegen</button>
-    </details>
+- Web Service: Node
+- Start command: `npm start`
+- Health check: `/api/health`
+- Persistent Disk: 1 GB op `/var/data`
+- `DATA_DIR=/var/data`
+- `LOGBOOK_USER=annemiek`
+- `LOGBOOK_PASSWORD`: zelf invullen in Render
+- `SESSION_SECRET`: automatisch laten genereren
 
-    <label style="display:flex;gap:8px;align-items:center;margin:10px 0">
-      <input type="checkbox" id="y-opt-hangop"/> Hangop maken
-    </label>
-    <details id="y-hangop" class="accent-section" style="display:none">
-      <summary>Hangop</summary>
-      <div class="row">
-        <div class="field span-3"><label>Liters yoghurt voor hangop</label><input id="y-hangop-bron-liters" type="number" step="0.1" min="0"/></div>
-        <div class="field span-3"><label>Liters hangop</label><input id="y-hangop-liters" type="number" step="0.1" min="0"/></div>
-        <div class="field span-3"><label>Uitlekpercentage (%)</label><input id="y-hangop-perc" type="number" step="1" min="0"/></div>
-        <div class="field span-3"><label>THT hangop auto</label><input id="y-hangop-tht" type="date" readonly/></div>
-      </div>
-      <div class="row">
-        <div class="field span-3"><label>Datum verwerken</label><input id="y-hangop-datum" type="date"/></div>
-        <div class="field span-3"><label>Tijdstip verwerken</label><input id="y-hangop-tijd" type="time"/></div>
-        <div class="field span-3"><label>Tijdstip in koeling</label><input id="y-hangop-koeltijd" type="time"/></div>
-      </div>
-      <details open>
-        <summary>Potten 500ml per smaak</summary>
-        <div class="list" id="y-hangop-repeater"></div>
-        <button type="button" class="btn" id="y-hangop-add">+ smaak hangop</button>
-      </details>
-    </details>
-    <div class="row">
-      <div class="field span-12"><label>Opmerkingen</label><textarea id="y-opmerkingen"></textarea></div>
-    </div>
-  </div>
+## Handmatig instellen
 
-  <div id="form-karnemelk" class="product-form" style="display:none">
-    <h3>Karnemelk — aanzuren en programma</h3>
-    <div class="row">
-      <div class="field span-3"><label>Datum productie</label><input id="km-prod-date" type="date"/></div>
-      <div class="field span-3"><label>Tijdstip start</label><input id="km-start" type="time"/></div>
-      <div class="field span-3"><label>Liters melk</label><input id="km-liters" type="number" step="0.1" min="0"/></div>
-      <div class="field span-3"><label>Temperatuur melk (°C)</label><input id="km-temp-melk" type="number" step="0.1"/></div>
-    </div>
-    <div class="row">
-      <div class="field span-6"><label>Programma pasteur</label><input id="km-programma" list="programma-lijst"/></div>
-      <div class="field span-3"><label>Tijdstip cultuur</label><input id="km-cultuur-tijd" type="time"/></div>
-      <div class="field span-3"><label>Cultuur (tl)</label><input id="km-cultuur-hoeveel" type="number" step="0.1" min="0"/></div>
-    </div>
+Als je geen Blueprint gebruikt:
 
-    <label style="display:flex;gap:8px;align-items:center;margin:10px 0">
-      <input type="checkbox" id="km-opt-aftap"/> Melk afgetapt voor gepasteuriseerde melk?
-    </label>
-    <details id="km-aftap" class="accent-section" style="display:none">
-      <summary>Aftap melk</summary>
-      <div class="row">
-        <div class="field span-3"><label>Liters aftap</label><input id="km-aftap-liters" type="number" step="0.1" min="0"/></div>
-        <div class="field span-3"><label>Tijdstip aftap</label><input id="km-aftap-tijd" type="time"/></div>
-        <div class="field span-3"><label>Temperatuur aftap (°C)</label><input id="km-aftap-temp" type="number" step="0.1"/></div>
-        <div class="field span-3"><label>THT aftap auto</label><input id="km-aftap-tht" type="date" readonly/></div>
-      </div>
-      <div class="row">
-        <div class="field span-3"><label>Flessen 1L</label><input id="km-aftap-1l" type="number" step="1" min="0"/></div>
-        <div class="field span-3"><label>Flessen 500ml</label><input id="km-aftap-500" type="number" step="1" min="0"/></div>
-      </div>
-    </details>
+1. Maak in Render een nieuwe Web Service.
+2. Kies Node.
+3. Zet build command op:
 
-    <h3>Karnemelk — na fermentatie</h3>
-    <div class="row accent-block">
-      <div class="field span-3"><label>Datum verwerken</label><input id="km-verwerk-datum" type="date"/></div>
-      <div class="field span-3"><label>Tijdstip verwerken</label><input id="km-verwerk-tijd" type="time"/></div>
-      <div class="field span-3"><label>pH</label><input id="km-ph" type="number" step="0.01" min="0"/></div>
-      <div class="field span-3"><label>Datum afvullen</label><input id="km-date" type="date"/></div>
-      <div class="field span-3"><label>THT karnemelk auto</label><input id="km-tht" type="date" readonly/></div>
-    </div>
+```text
+npm install --omit=dev
+```
 
-    <details open><summary>Flessen karnemelk</summary>
-      <div class="row">
-        <div class="field span-3"><label>Flessen 1L</label><input id="km-1l" type="number" step="1" min="0"/></div>
-        <div class="field span-3"><label>Flessen 500ml</label><input id="km-500" type="number" step="1" min="0"/></div>
-      </div>
-    </details>
-    <details class="accent-section"><summary>Roomboter</summary>
-      <div class="row">
-        <div class="field span-4"><label>Pakjes 250 g</label><input id="km-boter" type="number" step="1" min="0"/></div>
-        <div class="field span-4"><label>THT roomboter auto</label><input id="km-boter-tht" type="date" readonly/></div>
-      </div>
-    </details>
-    <div class="row">
-      <div class="field span-12"><label>Opmerkingen</label><textarea id="km-opmerkingen"></textarea></div>
-    </div>
-  </div>
+4. Zet start command op:
 
-  <div id="form-vla" class="product-form" style="display:none">
-    <h3>Vla</h3>
-    <div class="row">
-      <div class="field span-3"><label>Datum productie / afvullen</label><input id="v-date" type="date"/></div>
-      <div class="field span-3"><label>Totale liters vla</label><input id="v-liters" type="number" step="0.1" min="0"/></div>
-      <div class="field span-3"><label>Programma pasteur</label><input id="v-programma" list="programma-lijst"/></div>
-      <div class="field span-3"><label>THT auto</label><input id="v-tht" type="date" readonly/></div>
-    </div>
-    <div class="row">
-      <div class="field span-3"><label>Type</label>
-        <select id="v-type">
-          <option value="neutraal">Neutraal + compound</option>
-          <option value="vanille">Vanille</option>
-          <option value="chocolade">Chocoladevla</option>
-        </select>
-      </div>
-      <div class="field span-3"><label>Temperatuur bij afvullen (°C)</label><input id="v-temp-afvullen" type="number" step="0.1"/></div>
-    </div>
+```text
+npm start
+```
 
-    <details class="accent-section" id="v-comp-details" open>
-      <summary>Neutrale basis en compound</summary>
-      <div class="row">
-        <div class="field span-4"><label>Neutrale poeder (g/L)</label><input id="v-neutral-powder-ratio" type="number" value="121.21" readonly/></div>
-        <div class="field span-4"><label>Neutrale poeder totaal (g)</label><input id="v-neutral-powder-grams" type="number" readonly/></div>
-      </div>
-      <div class="list" id="v-repeater"></div>
-      <button type="button" class="btn" id="v-add">+ compoundregel</button>
-      <div class="muted" id="v-comp-sum"></div>
-    </details>
+5. Voeg een Persistent Disk toe:
 
-    <details class="accent-section" id="v-powder-details">
-      <summary>Poederberekening</summary>
-      <div class="row">
-        <div class="field span-4"><label>Ratio poeder (g/L)</label><input id="v-powder-ratio" type="number" readonly/></div>
-        <div class="field span-4"><label>Benodigd poeder (g)</label><input id="v-powder-grams" type="number" readonly/></div>
-      </div>
-      <div class="muted">Vanille: 121,21 g/L. Chocoladevla: 133,33 g/L.</div>
-    </details>
+```text
+Mount path: /var/data
+Size: 1 GB
+```
 
-    <details open id="v-bottles-details">
-      <summary>Flessen vla per smaak</summary>
-      <div class="list" id="v-bottles"></div>
-    </details>
-    <div class="row">
-      <div class="field span-12"><label>Opmerkingen</label><textarea id="v-opmerkingen"></textarea></div>
-    </div>
-  </div>
+6. Voeg environment variables toe:
 
-  <div id="form-melk" class="product-form" style="display:none">
-    <h3>Gepasteuriseerde melk</h3>
-    <div class="row">
-      <div class="field span-3"><label>Datum productie</label><input id="m-date" type="date"/></div>
-      <div class="field span-3"><label>Liters melk</label><input id="m-liters" type="number" step="0.1" min="0"/></div>
-      <div class="field span-3"><label>Programma pasteur</label><input id="m-programma" list="programma-lijst"/></div>
-      <div class="field span-3"><label>THT auto</label><input id="m-tht" type="date" readonly/></div>
-    </div>
-    <div class="row">
-      <div class="field span-3"><label>Temperatuur bij afvullen (°C)</label><input id="m-temp" type="number" step="0.1"/></div>
-    </div>
-    <details open><summary>Flessen melk</summary>
-      <div class="row">
-        <div class="field span-3"><label>Flessen 1L</label><input id="m-1l" type="number" step="1" min="0"/></div>
-        <div class="field span-3"><label>Flessen 500ml</label><input id="m-500" type="number" step="1" min="0"/></div>
-      </div>
-    </details>
-    <div class="row">
-      <div class="field span-12"><label>Opmerkingen</label><textarea id="m-opmerkingen"></textarea></div>
-    </div>
-  </div>
+```text
+DATA_DIR=/var/data
+LOGBOOK_USER=annemiek
+LOGBOOK_PASSWORD=<jouw wachtwoord>
+SESSION_SECRET=<lange willekeurige tekst>
+```
 
-  <div id="form-chocomelk" class="product-form" style="display:none">
-    <h3>Chocolademelk</h3>
-    <div class="row">
-      <div class="field span-3"><label>Datum productie / afvullen</label><input id="c-date" type="date"/></div>
-      <div class="field span-3"><label>Liters chocolademelk</label><input id="c-liters" type="number" step="0.1" min="0"/></div>
-      <div class="field span-3"><label>Programma pasteur</label><input id="c-programma" list="programma-lijst"/></div>
-      <div class="field span-3"><label>THT auto</label><input id="c-tht" type="date" readonly/></div>
-    </div>
-    <div class="row accent-block">
-      <div class="field span-3"><label>Temperatuur poeder toevoegen (°C)</label><input id="c-poeder-temp" type="number" step="0.1"/></div>
-      <div class="field span-3"><label>Poeder ratio (g/L)</label><input id="c-powder-ratio" type="number" value="90.909" readonly/></div>
-      <div class="field span-3"><label>Benodigd poeder (g)</label><input id="c-powder-grams" type="number" readonly/></div>
-    </div>
-    <details open><summary>Flessen chocolademelk</summary>
-      <div class="row">
-        <div class="field span-3"><label>Flessen 1L</label><input id="c-1l" type="number" step="1" min="0"/></div>
-        <div class="field span-3"><label>Flessen 500ml</label><input id="c-500" type="number" step="1" min="0"/></div>
-      </div>
-    </details>
-    <div class="row">
-      <div class="field span-12"><label>Opmerkingen</label><textarea id="c-opmerkingen"></textarea></div>
-    </div>
-  </div>
+## Data en backups
 
-  <datalist id="programma-lijst">
-    <option value="63°C 30 min"></option>
-    <option value="85°C 20 min"></option>
-    <option value="90°C 10 min"></option>
-  </datalist>
-</section>
+De logboeken worden online bewaard in:
 
-<aside class="card summary-card">
-  <div class="print-cover">
-    <h2>Het Boerderijwinkeltje</h2>
-    <p id="print-meta">Zuivellogboek</p>
-  </div>
-  <h2 id="s-title">Samenvatting</h2>
-  <div id="s-summary" class="muted">(Samenvatting komt hier live)</div>
-  <p class="muted no-print" style="margin-top:14px">Tip: gebruik “Opslaan als PDF” om de samenvatting als PDF te bewaren.</p>
-</aside>
-</main>
+```text
+/var/data/logboeken.json
+```
 
-<nav class="mobile-actionbar no-print" id="mobile-actionbar" aria-label="Snelle acties">
-  <button type="button" class="btn primary" id="mobileSaveServer">Opslaan</button>
-  <button type="button" class="btn" id="mobileNewLogbook">Nieuw</button>
-  <button type="button" class="btn" id="mobileShowLogbooks">Logboeken</button>
-</nav>
+Bij elke wijziging maakt de server ook een dagbackup in:
 
-<script src="app.js?v=render-3" defer></script>
-</body>
-</html>
+```text
+/var/data/backups/
+```
 
+Daarnaast kun je in de app zelf nog steeds `Backup JSON` gebruiken.
 
+## Belangrijk
 
+Zet `LOGBOOK_PASSWORD` nooit in GitHub of in een gedeeld zipbestand. Vul dit alleen in bij Render onder Environment Variables.

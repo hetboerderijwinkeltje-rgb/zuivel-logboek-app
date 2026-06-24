@@ -1,9 +1,9 @@
-const CACHE_NAME = 'zuivellogboek-server-v7';
+const CACHE_NAME = 'zuivellogboek-server-v17';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=render-3',
-  './app.js?v=render-3',
+  './styles.css?v=render-13',
+  './app.js?v=render-13',
   './manifest.json',
   './icons/icon.svg',
   './icons/icon-192.png',
